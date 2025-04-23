@@ -2,4 +2,5 @@
 
 ## Authors:
 Backend: Cam Keller, Claire Yu, Lydia Shen
+
 iOS: Parsa Tehranipoor, Isac Sacoto
