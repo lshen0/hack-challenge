@@ -12,29 +12,31 @@ class User(db.Model):
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String, nullable=False)
-    username = db.Column(db.String, nullable=False)
+    username = db.Column(db.String, unique=True, nullable=False)
     bio = db.Column(db.String, nullable=True)
     location = db.Column(db.String, nullable=True)
-    timestamp = db.Column(db.DateTime, nullable=False)
+    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now)
     ratings_count = db.Column(db.Integer, default=0)
     average_rating = db.Column(db.Float, default=0)
     ranking = db.Column(db.Integer, default=0)
     # TODO: badges
 
+    # Relationships
     # This user's followers are instances where this user's id is the following id in Connection
     followers = db.relationship("Connection", foreign_keys="[Connection.following_id]", back_populates="following")
     # This user's following are instances where this user's id is the follower id in Connection
     following = db.relationship("Connection", foreign_keys="[Connection.follower_id]", back_populates="follower")
+    # Review
+    reviews = db.relationship("Review", back_populates="user")
 
     def __init__(self, **kwargs):
         """
         Initialize User object.
         """
-        self.id = kwargs.get("id")
         self.name = kwargs.get("name")
         self.username = kwargs.get("username")
-        self.bio = kwargs.get("bio")
-        self.location = kwargs.get("location")
+        self.bio = kwargs.get("bio", "")
+        self.location = kwargs.get("location", "")
         self.timestamp = datetime.datetime.now()
         # TODO: self.ratings_count = calculate!! # TODO 
         # TODO: self.average_rating = calculate!!
@@ -54,7 +56,9 @@ class User(db.Model):
             "timestamp": self.timestamp.isoformat(),
             "ratings_count": self.ratings_count,
             "average_rating": self.average_rating,
-            "ranking": self.ranking
+            "ranking": self.ranking,
+            "reviews": [ r.serialize() for r in self.reviews ]
+            # TODO: followers/following
             # TODO: badges
         }
 
@@ -69,7 +73,7 @@ class Connection(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     follower_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
     following_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
-    timestamp = db.Column(db.DateTime,nullable=False) 
+    timestamp = db.Column(db.DateTime,nullable=False, default=datetime.datetime.now) 
 
     # Connections must be unique
     __table_args__ = (
@@ -84,7 +88,6 @@ class Connection(db.Model):
         """
         Initialize Connection object.
         """
-        self.id = kwargs.get("id")
         self.follower_id = kwargs.get("follower_id")
         self.following_id = kwargs.get("following_id")
         self.timestamp = datetime.datetime.now()
@@ -103,7 +106,6 @@ class Connection(db.Model):
 class Eatery(db.Model):
     """
     Eatery model.
-    Many-to-many relationship with Review.
     """
     __tablename__ = "eatery"
 
@@ -114,18 +116,19 @@ class Eatery(db.Model):
     location = db.Column(db.String, nullable=True) 
     average_rating = db.Column(db.Float, default=0)
     # TODO: reviews
+    reviews = db.relationship("Review", back_populates="eatery")
+
 
     def __init__(self, **kwargs):
         """
         Initialize Eatery object.
         """
-        self.id = kwargs.get("id")
         self.name = kwargs.get("name")
-        self.description = kwargs.get("description")
-        self.cuisine = kwargs.get("cuisine")
-        self.location = kwargs.get("location")
+        self.description = kwargs.get("description", "")
+        self.cuisine = kwargs.get("cuisine", "")
+        self.location = kwargs.get("location", "")
         # TODO: self.average_rating = calculate!!
-
+        # self.average_rating = 0
         # TODO: relationships.
 
     def serialize(self):
@@ -135,8 +138,49 @@ class Eatery(db.Model):
         return {
             "id": self.id,
             "name": self.name,
-            "description": self.name,
+            "description": self.description,
             "cuisine": self.cuisine,
             "location": self.location,
             "average_rating": self.average_rating
+        }
+
+class Review(db.Model):
+    """
+    Review model.
+    Each row is a rating (1-10) and optional review by one user for one eatery.
+    Many-to-many relationship with Eatery.
+    """
+    __tablename__ = "review"
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    eatery_id = db.Column(db.Integer, db.ForeignKey("eatery.id"), nullable=False)
+    rating = db.Column(db.Integer, nullable=False)  # 1-10 value
+    review_text = db.Column(db.String, nullable=True)
+    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now)
+
+    # Table constraints: rating must be between 0 and 10
+    __table_args__ = (
+        db.CheckConstraint("rating >= 1 AND rating <= 10", name="checking_rating_range"),
+    ) # TODO: should we check this and raise a value error instead?
+
+    # Relationships
+    user = db.relationship("User", back_populates="reviews")
+    eatery = db.relationship("Eatery", back_populates="reviews")
+
+    def __init__(self, **kwargs):
+        self.user_id = kwargs.get("user_id")
+        self.eatery_id = kwargs.get("eatery_id")
+        self.rating = kwargs.get("rating")            
+        self.review_text = kwargs.get("review_text")
+        self.timestamp = datetime.datetime.now()
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "eatery_id": self.eatery_id,
+            "rating": self.rating,
+            "review_text": self.review_text,
+            "timestamp": self.timestamp.isoformat()
         }
