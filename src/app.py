@@ -150,6 +150,17 @@ def get_user_following(user_id):
     following = Connection.query.filter_by(follower_id=user_id)
     return success_response({"following" : [ c.following.simple_serialize() for c in following ]})
 
+@app.route("/api/users/<int:user_id>/reviews/")
+def get_user_reviews(user_id):
+    """
+    Get all reviews made by this user
+    """
+    user = User.query.filter_by(id=user_id).first()
+    if user is None:
+        return failure_response("user not found")
+    reviews = Review.query.filter_by(user_id=user_id)
+    return success_response({"reviews": [ r.serialize() for r in reviews ]})
+
 # -- CONNECTION ROUTES -------------------------------------------------------
 
 @app.route("/api/connections/")
@@ -289,6 +300,17 @@ def delete_eatery_by_id(eatery_id):
     db.session.delete(eatery)
     db.session.commit()
     return success_response(eatery.serialize())
+
+@app.route("/api/eateries/<int:eatery_id>/reviews/")
+def get_eatery_reviews(eatery_id):
+    """
+    Get all reviews for this eatery
+    """
+    eatery = Eatery.query.filter_by(id=eatery_id).first()
+    if eatery is None:
+        return failure_response("eatery not found")
+    reviews = Review.query.filter_by(eatery_id=eatery_id)
+    return success_response({"reviews": [ r.serialize() for r in reviews ]})
 
 # -- REVIEW ROUTES ----------------------------------------------------------
 
