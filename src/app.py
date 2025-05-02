@@ -1,7 +1,8 @@
-from db import db, User, Connection, Eatery, Review, update_user_rankings
+from db import db, User, Connection, Eatery, Review
 from flask import Flask, request
 import json
 import datetime
+from sqlalchemy import func
 
 app = Flask(__name__)
 db_filename = "beli.db" 
@@ -21,9 +22,63 @@ def success_response(body, code=200):
 def failure_response(message, code=404):
     return json.dumps({"error": message}), code
 
+# -- HELPER FUNCTIONS -----------------------------------------------
+def update_user_rankings():
+    """
+    Updates each user's ranking based on how many reviews they have written.
+    More reviews = higher rank (lower number).
+    """
+    # session: Session = db.session  # Get current SQLAlchemy session
+
+    # Query review count for each user, ordered by count descending
+    user_review_counts = db.session.query(
+        Review.user_id,
+        func.count(Review.id).label("review_count")
+    ).group_by(Review.user_id).order_by(func.count(Review.id).desc()).all()
+
+    # Assign ranking based on index in sorted list (starting from 1)
+    for rank, (user_id, count) in enumerate(user_review_counts, start=1):
+        user = db.session.get(User, user_id)
+        if user:
+            user.ranking = rank
+            user.ratings_count = count  # Optional: keep this in sync
+
+    db.session.commit()
+
+def update_user_average_rating(user_id):
+    """"
+    Update user's average rating based on ratings across all reviews they have written.
+    """
+    user = User.query.filter_by(id=user_id).first()
+    if user is None:
+        return failure_response("user not found")
+    reviews = user.reviews
+    if len(reviews) == 0:
+        user.average_rating = 0
+    else:
+        total = sum([review.rating for review in reviews])
+        user.average_rating = round((float) (total) / len(reviews), 1)
+    user.ratings_count = len(reviews)
+    db.session.commit()
+
+def update_eatery_average_rating(eatery_id):
+    """"
+    Update eatery's average rating based on ratings across all reviews written about them.
+    """
+    eatery = Eatery.query.filter_by(id=eatery_id).first()
+    if eatery is None:
+        return failure_response("eatery not found")
+    reviews = eatery.reviews
+    if len(reviews) == 0:
+        eatery.average_rating = 0
+    else:
+        total = sum([review.rating for review in reviews])
+        eatery.average_rating = round((float) (total) / len(reviews), 1)
+    db.session.commit()
+
 # -- ROUTES -----------------------------------------------
 
-# USER ROUTES
+# -- USER ROUTES -----------------------------------------------
 @app.route("/api/users/", methods=["POST"])
 def create_user():
     """"
@@ -66,7 +121,7 @@ def delete_user_by_id(user_id):
     db.session.commit()
     return success_response(user.serialize())
 
-# EATERY ROUTES
+# -- EATERY ROUTES -----------------------------------------------
 @app.route("/api/eateries/", methods=["POST"])
 def create_eatery():
     """
@@ -109,7 +164,7 @@ def delete_eatery_by_id(eatery_id):
     db.session.commit()
     return success_response(eatery.serialize())
 
-# REVIEW ROUTES
+# -- REVIEW ROUTES -----------------------------------------------
 @app.route("/api/reviews/", methods=["POST"])
 def create_review():
     """
@@ -130,7 +185,11 @@ def create_review():
     review = Review(user_id=user_id, eatery_id=eatery_id, rating=rating, review_text=review_text)
     db.session.add(review)
     db.session.commit()
+    # Update all user rankings; update this user's average rating; update this eatery's average rating
     update_user_rankings()
+    update_user_average_rating(user_id)
+    update_eatery_average_rating(eatery_id)
+
     return success_response(review.serialize(), 201)
 
 @app.route("/api/reviews/")
@@ -151,7 +210,43 @@ def delete_review_by_id(review_id):
         return failure_response("review not found")
     db.session.delete(review)
     db.session.commit()
+
+    update_user_rankings()
+    update_user_average_rating(review.user_id)
+    update_eatery_average_rating(review.eatery_id)
+
     return success_response(review.serialize())
+
+@app.route("/api/reviews/<int:review_id>/", methods=["PUT"])
+def edit_review(review_id):
+    """
+    Edit a review by id
+    """
+    review = Review.query.filter_by(id=review_id).first()
+    if review is None:
+        return failure_response("review not found")
+
+    try:
+        body = json.loads(request.data)
+    except:
+        return failure_response("Invalid JSON format!", 400)
+   
+    rating = body.get("rating", review.rating)
+    review_text = body.get("review_text", review.review_text)
+    timestamp = datetime.datetime.now()
+    if not (1 <= rating <= 10):
+        return failure_response("rating must be between 1 and 10", 400)
+    review.rating = rating
+    review.review_text = review_text
+    review.timestamp = timestamp
+
+    db.session.commit()
+
+    update_user_average_rating(review.user_id)
+    update_eatery_average_rating(review.eatery_id)
+
+    return success_response(review.serialize())
+    
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)

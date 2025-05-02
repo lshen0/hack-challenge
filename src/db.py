@@ -39,10 +39,10 @@ class User(db.Model):
         self.bio = kwargs.get("bio", "")
         self.location = kwargs.get("location", "")
         self.timestamp = datetime.datetime.now()
-        self.ratings_count = 0
-        # TODO: self.average_rating = calculate!!
-        self.ranking = 0
-
+        self.ratings_count = 0 
+        self.average_rating = 0
+        self.ranking = 0 # ranking 0 means you haven't ranked eateries yet
+ 
     def serialize(self):
         """
         Serialize User object (without followers/following).
@@ -55,7 +55,7 @@ class User(db.Model):
             "location": self.location,
             "timestamp": self.timestamp.isoformat(),
             "ratings_count": self.ratings_count,
-            # "average_rating": self.average_rating,
+            "average_rating": self.average_rating,
             "ranking": self.ranking,
             "reviews": [ r.serialize() for r in self.reviews ]
             # TODO: followers/following
@@ -125,8 +125,7 @@ class Eatery(db.Model):
         self.description = kwargs.get("description", "")
         self.cuisine = kwargs.get("cuisine", "")
         self.location = kwargs.get("location", "")
-        # TODO: self.average_rating = calculate!!
-        # self.average_rating = 0
+        self.average_rating = 0
 
     def serialize(self):
         """
@@ -152,7 +151,7 @@ class Review(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
     eatery_id = db.Column(db.Integer, db.ForeignKey("eatery.id"), nullable=False)
-    rating = db.Column(db.Integer, nullable=False)  # 1-10 value
+    rating = db.Column(db.Float, nullable=False)  # 1-10 value
     review_text = db.Column(db.String, nullable=True)
     timestamp = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now)
 
@@ -182,24 +181,3 @@ class Review(db.Model):
             "timestamp": self.timestamp.isoformat()
         }
 
-def update_user_rankings():
-    """
-    Updates each user's ranking based on how many reviews they have written.
-    More reviews = higher rank (lower number).
-    """
-    session: Session = db.session  # Get current SQLAlchemy session
-
-    # Query review count for each user, ordered by count descending
-    user_review_counts = session.query(
-        Review.user_id,
-        func.count(Review.id).label("review_count")
-    ).group_by(Review.user_id).order_by(func.count(Review.id).desc()).all()
-
-    # Assign ranking based on index in sorted list (starting from 1)
-    for rank, (user_id, count) in enumerate(user_review_counts, start=1):
-        user = session.get(User, user_id)
-        if user:
-            user.ranking = rank
-            user.ratings_count = count  # Optional: keep this in sync
-
-    session.commit()
