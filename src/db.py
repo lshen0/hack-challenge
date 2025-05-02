@@ -202,4 +202,3 @@ class Review(db.Model):
             "review_text": self.review_text,
             "timestamp": self.timestamp.isoformat()
         }
-
