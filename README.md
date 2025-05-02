@@ -1,6 +1,6 @@
 # Big Red Beli
 
-Rate and share your favorite spots on campus with friends!
+Rate and share your favorite spots on campus with friends! 😋
 
 ### Authors:
 Backend: Cam Keller, Claire Yu, Lydia Shen
