@@ -12,8 +12,8 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["SQLALCHEMY_ECHO"] = True
 
 db.init_app(app)
-with app.app_context():
-    db.create_all()
+# with app.app_context():
+#     db.create_all()
 
 # -- Generalized responses --------------------------------------------------------
 def success_response(body, code=200):
@@ -269,12 +269,11 @@ def create_eatery():
     
     name = body.get("name")
     description = body.get("description")
-    cuisine = body.get("cuisine")
     location = body.get("location")
     if name is None:
         return failure_response("Missing required fields!", 400)
     
-    eatery = Eatery(name=name, description=description, cuisine=cuisine, location=location, average_rating=0)
+    eatery = Eatery(name=name, description=description, location=location, average_rating=0)
     db.session.add(eatery)
     db.session.commit()
     return success_response(eatery.serialize(), 201)

@@ -146,8 +146,8 @@ class Eatery(db.Model):
         Initialize Eatery object.
         """
         self.name = kwargs.get("name")
-        self.description = kwargs.get("description", "")
-        self.location = kwargs.get("location", "")
+        self.description = kwargs.get("description")
+        self.location = kwargs.get("location")
         self.average_rating = 0
 
     def serialize(self):
