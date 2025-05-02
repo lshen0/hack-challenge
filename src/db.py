@@ -24,12 +24,12 @@ class User(db.Model):
     follower_count = db.Column(db.Integer, default=0)
     following_count = db.Column(db.Integer, default=0)
 
-    # Relationships
+    # Relationships: 1 user to many reviews; many users to many connections
     # This user's followers are instances where this user's id is the following id in Connection
     followers = db.relationship("Connection", foreign_keys="[Connection.following_id]", back_populates="following",  cascade="delete")
     # This user's following are instances where this user's id is the follower id in Connection
     following = db.relationship("Connection", foreign_keys="[Connection.follower_id]", back_populates="follower",  cascade="delete")
-    # Review
+    # 1
     reviews = db.relationship("Review", back_populates="user", cascade="delete")
 
     def __init__(self, **kwargs):
@@ -102,6 +102,7 @@ class Connection(db.Model):
         db.UniqueConstraint("follower_id", "following_id", name='unique_user_connection'),
     )
 
+    # Relationships: many-to-many with User
     follower = db.relationship("User", foreign_keys=[follower_id], back_populates="following")
     following = db.relationship("User", foreign_keys=[following_id], back_populates="followers")
 
@@ -135,8 +136,9 @@ class Eatery(db.Model):
     description = db.Column(db.String(150), nullable=True)
     location = db.Column(db.String, nullable=True) 
     average_rating = db.Column(db.Float, default=0)
-    reviews = db.relationship("Review", back_populates="eatery",  cascade="delete")
 
+    # Relationship: 1 eatery to many reviews
+    reviews = db.relationship("Review", back_populates="eatery",  cascade="delete")
 
     def __init__(self, **kwargs):
         """
@@ -162,8 +164,7 @@ class Eatery(db.Model):
 class Review(db.Model):
     """
     Review model.
-    Each row is a rating (1-10) and optional review by one user for one eatery.
-    Many-to-many relationship with Eatery.
+    Each row is a rating (float 1-10) and optional review by one user for one eatery.
     """
     __tablename__ = "review"
 
@@ -179,7 +180,7 @@ class Review(db.Model):
         db.CheckConstraint("rating >= 1 AND rating <= 10", name="checking_rating_range"),
     ) 
 
-    # Relationships
+    # Relationship: many reviews to 1 user, many reviews to 1 eatery
     user = db.relationship("User", back_populates="reviews")
     eatery = db.relationship("Eatery", back_populates="reviews")
 

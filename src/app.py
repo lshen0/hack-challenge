@@ -75,6 +75,25 @@ def update_eatery_average_rating(eatery_id):
     db.session.commit()
 
 # -- USER ROUTES -------------------------------------------------------------------
+
+@app.route("/api/users/")
+def get_users():
+    """"
+    Get all users
+    """
+    users = User.query.all()
+    return success_response({"users" : [ u.serialize() for u in users ]})
+
+@app.route("/api/users/<int:user_id>/")
+def get_user_by_id(user_id):
+    """
+    Get user by id
+    """
+    user = User.query.filter_by(id=user_id).first()
+    if user is None:
+        return failure_response("user not found")
+    return success_response(user.serialize())
+
 @app.route("/api/users/", methods=["POST"])
 def create_user():
     """"
@@ -96,24 +115,6 @@ def create_user():
     db.session.add(user)
     db.session.commit()
     return success_response(user.serialize(), 201)
-
-@app.route("/api/users/")
-def get_users():
-    """"
-    Get all users
-    """
-    users = User.query.all()
-    return success_response({"users" : [ u.serialize() for u in users ]})
-
-@app.route("/api/users/<int:user_id>/")
-def get_user_by_id(user_id):
-    """
-    Get user by id
-    """
-    user = User.query.filter_by(id=user_id).first()
-    if user is None:
-        return failure_response("user not found")
-    return success_response(user.serialize())
 
 @app.route("/api/users/<int:user_id>/", methods=["DELETE"])
 def delete_user_by_id(user_id):
@@ -150,6 +151,7 @@ def get_user_following(user_id):
     return success_response({"following" : [ c.following.simple_serialize() for c in following ]})
 
 # -- CONNECTION ROUTES -------------------------------------------------------
+
 @app.route("/api/connections/")
 def get_connections():
     """
@@ -234,6 +236,25 @@ def unfollow():
     return success_response(connection.serialize())
 
 # -- EATERY ROUTES ----------------------------------------------------------
+
+@app.route("/api/eateries/")
+def get_eateries():
+    """"
+    Get all eateries
+    """
+    eateries = Eatery.query.all()
+    return success_response({"eateries": [ e.serialize() for e in eateries ]})
+
+@app.route("/api/eateries/<int:eatery_id>/")
+def get_eatery_by_id(eatery_id):
+    """
+    Get eatery by id
+    """
+    eatery = Eatery.query.filter_by(id=eatery_id).first()
+    if eatery is None:
+        return failure_response("eatery not found")
+    return success_response(eatery.serialize())
+
 @app.route("/api/eateries/", methods=["POST"])
 def create_eatery():
     """
@@ -256,24 +277,6 @@ def create_eatery():
     db.session.commit()
     return success_response(eatery.serialize(), 201)
 
-@app.route("/api/eateries/")
-def get_eateries():
-    """"
-    Get all eateries
-    """
-    eateries = Eatery.query.all()
-    return success_response({"eateries": [ e.serialize() for e in eateries ]})
-
-@app.route("/api/eateries/<int:eatery_id>/")
-def get_eatery_by_id(eatery_id):
-    """
-    Get eatery by id
-    """
-    eatery = Eatery.query.filter_by(id=eatery_id).first()
-    if eatery is None:
-        return failure_response("eatery not found")
-    return success_response(eatery.serialize())
-
 @app.route("/api/eateries/<int:eatery_id>/", methods=["DELETE"])
 def delete_eatery_by_id(eatery_id):
     """"
@@ -287,6 +290,25 @@ def delete_eatery_by_id(eatery_id):
     return success_response(eatery.serialize())
 
 # -- REVIEW ROUTES ----------------------------------------------------------
+
+@app.route("/api/reviews/")
+def get_reviews():
+    """
+    Get all reviews
+    """
+    reviews = Review.query.all()
+    return success_response({"reviews": [ r.serialize() for r in reviews ]})
+
+@app.route("/api/reviews/<int:review_id>/")
+def get_review_by_id(review_id):
+    """
+    Get review by id
+    """
+    review = Review.query.filter_by(id=review_id).first()
+    if review is None:
+        return failure_response("review not found")
+    return success_response(review.serialize())
+
 @app.route("/api/reviews/", methods=["POST"])
 def create_review():
     """
@@ -313,25 +335,6 @@ def create_review():
     update_eatery_average_rating(eatery_id)
 
     return success_response(review.serialize(), 201)
-
-@app.route("/api/reviews/")
-def get_reviews():
-    """
-    Get all reviews
-    """
-    reviews = Review.query.all()
-    return success_response({"reviews": [ r.serialize() for r in reviews ]})
-
-@app.route("/api/reviews/<int:review_id>/")
-def get_review_by_id(review_id):
-    """
-    Get review by id
-    """
-    review = Review.query.filter_by(id=review_id).first()
-    if review is None:
-        return failure_response("review not found")
-    return success_response(review.serialize())
-
 
 @app.route("/api/reviews/<int:review_id>/", methods=["DELETE"])
 def delete_review_by_id(review_id):
