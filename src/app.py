@@ -28,8 +28,6 @@ def update_user_rankings():
     Updates each user's ranking based on how many reviews they have written.
     More reviews = higher rank (lower number).
     """
-    # session: Session = db.session  # Get current SQLAlchemy session
-
     # Query review count for each user, ordered by count descending
     user_review_counts = db.session.query(
         Review.user_id,
@@ -76,7 +74,7 @@ def update_eatery_average_rating(eatery_id):
         eatery.average_rating = round((float) (total) / len(reviews), 1)
     db.session.commit()
 
-# -- ROUTES -----------------------------------------------
+# ------------------ ROUTES --------------------------------------------
 
 # -- USER ROUTES -----------------------------------------------
 @app.route("/api/users/", methods=["POST"])
@@ -118,8 +116,86 @@ def delete_user_by_id(user_id):
     if user is None:
         return failure_response("user not found")
     db.session.delete(user)
-    db.session.commit()
+    db.session.commit() 
     return success_response(user.serialize())
+
+@app.route("/api/users/<int:user_id>/followers/")
+def get_all_followers(user_id):
+    """
+    Get all followers of a user
+    """
+    user = User.query.filter_by(id=user_id).first()
+    if user is None:
+        return failure_response("user not found")
+    followers = Connection.query.filter_by(following_id=user_id)
+    return success_response({"followers" : [ c.follower.simple_serialize() for c in followers ]})
+
+@app.route("/api/users/<int:user_id>/following/")
+def get_all_following(user_id):
+    """
+    Get all people this user is following
+    """
+    user = User.query.filter_by(id=user_id).first()
+    if user is None:
+        return failure_response("user not found")
+    following = Connection.query.filter_by(follower_id=user_id)
+    return success_response({"following" : [ c.following.simple_serialize() for c in following ]})
+
+
+
+# -- CONNECTION ROUTES -----------------------------------------------
+@app.route("/api/connections/")
+def get_all_connections():
+    """
+    Get all connections
+    """
+    connections = Connection.query.all()
+    return success_response({"connections" : [ c.serialize() for c in connections ]})
+
+@app.route("/api/users/<int:follower_id>/follow/<int:following_id>/", methods=["POST"])
+def follow(follower_id, following_id):
+    """"
+    Have one user follow another
+    """
+    follower = User.query.filter_by(id=follower_id).first()
+    following = User.query.filter_by(id=following_id).first()
+    if follower is None:
+        return failure_response("follower not found")
+    if following is None:
+        return failure_response("following not found")
+
+    connection = Connection(follower_id=follower_id, following_id=following_id)
+    db.session.add(connection)
+
+    # Update follower/following counts
+    follower.following_count = follower.following_count + 1
+    following.follower_count = following.follower_count + 1
+
+    db.session.commit()
+    return success_response(connection.serialize())
+
+@app.route("/api/users/<int:follower_id>/unfollow/<int:following_id>/", methods=["DELETE"])
+def unfollow(follower_id, following_id):
+    """"
+    Have one user unfollow another
+    """
+    follower = User.query.filter_by(id=follower_id).first()
+    following = User.query.filter_by(id=following_id).first()
+    if follower is None:
+        return failure_response("follower not found")
+    if following is None:
+        return failure_response("following not found")
+
+    connection = Connection.query.filter_by(follower_id=follower_id, following_id=following_id).first()
+    if connection is None:
+        return failure_response("connection does not exist", 404)
+    db.session.delete(connection)
+   
+    follower.following_count = follower.following_count - 1
+    following.follower_count = following.follower_count - 1
+    db.session.commit()
+
+    return success_response(connection.serialize())
 
 # -- EATERY ROUTES -----------------------------------------------
 @app.route("/api/eateries/", methods=["POST"])

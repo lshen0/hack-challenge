@@ -21,6 +21,8 @@ class User(db.Model):
     ratings_count = db.Column(db.Integer, default=0)
     average_rating = db.Column(db.Float, default=0)
     ranking = db.Column(db.Integer, default=0)
+    follower_count = db.Column(db.Integer, default=0)
+    following_count = db.Column(db.Integer, default=0)
 
     # Relationships
     # This user's followers are instances where this user's id is the following id in Connection
@@ -42,7 +44,28 @@ class User(db.Model):
         self.ratings_count = 0 
         self.average_rating = 0
         self.ranking = 0 # ranking 0 means you haven't ranked eateries yet
+        # ranking is given based on number of reviews, then recency of reviews (in case of tie)
+        self.follower_count = 0
+        self.following_count = 0
  
+    def simple_serialize(self):
+        """
+        Simple serialize User object (without reviews and followers/following).
+        """
+        return {
+            "id": self.id,
+            "name": self.name,
+            "username": self.username,
+            "bio": self.bio,
+            "location": self.location,
+            "timestamp": self.timestamp.isoformat(),
+            "ratings_count": self.ratings_count,
+            "average_rating": self.average_rating,
+            "ranking": self.ranking,
+            "follower_count": self.follower_count,
+            "following_count": self.following_count 
+        }
+
     def serialize(self):
         """
         Serialize User object (without followers/following).
@@ -57,8 +80,9 @@ class User(db.Model):
             "ratings_count": self.ratings_count,
             "average_rating": self.average_rating,
             "ranking": self.ranking,
+            "follower_count": self.follower_count,
+            "following_count": self.following_count,
             "reviews": [ r.serialize() for r in self.reviews ]
-            # TODO: followers/following
         }
 
 class Connection(db.Model):
@@ -78,7 +102,6 @@ class Connection(db.Model):
         db.UniqueConstraint("follower_id", "following_id", name='unique_user_connection'),
     )
 
-    # TODO: check follower/following logic
     follower = db.relationship("User", foreign_keys=[follower_id], back_populates="following")
     following = db.relationship("User", foreign_keys=[following_id], back_populates="followers")
 
@@ -96,8 +119,8 @@ class Connection(db.Model):
         """
         return {
             "id": self.id,
-            "follower": self.follower.serialize() if self.follower else None,
-            "following": self.following.serialize() if self.following else None,
+            "follower": self.follower.simple_serialize() if self.follower else None,
+            "following": self.following.simple_serialize() if self.following else None,
             "timestamp": self.timestamp.isoformat()
         }
     
@@ -110,10 +133,8 @@ class Eatery(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String, nullable=False)
     description = db.Column(db.String(150), nullable=True)
-    cuisine = db.Column(db.String, nullable=True) # TODO: maybe input as comma separated values?
     location = db.Column(db.String, nullable=True) 
     average_rating = db.Column(db.Float, default=0)
-    # TODO: reviews
     reviews = db.relationship("Review", back_populates="eatery",  cascade="delete")
 
 
@@ -123,7 +144,6 @@ class Eatery(db.Model):
         """
         self.name = kwargs.get("name")
         self.description = kwargs.get("description", "")
-        self.cuisine = kwargs.get("cuisine", "")
         self.location = kwargs.get("location", "")
         self.average_rating = 0
 
@@ -135,7 +155,6 @@ class Eatery(db.Model):
             "id": self.id,
             "name": self.name,
             "description": self.description,
-            "cuisine": self.cuisine,
             "location": self.location,
             "average_rating": self.average_rating
         }
@@ -158,7 +177,7 @@ class Review(db.Model):
     # Table constraints: rating must be between 0 and 10
     __table_args__ = (
         db.CheckConstraint("rating >= 1 AND rating <= 10", name="checking_rating_range"),
-    ) # TODO: should we check this and raise a value error instead?
+    ) 
 
     # Relationships
     user = db.relationship("User", back_populates="reviews")
