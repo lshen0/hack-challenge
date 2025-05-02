@@ -1,5 +1,7 @@
 from flask_sqlalchemy import SQLAlchemy
 import datetime
+from sqlalchemy import func, event
+from sqlalchemy.orm import Session
 
 db = SQLAlchemy()
 
@@ -19,15 +21,14 @@ class User(db.Model):
     ratings_count = db.Column(db.Integer, default=0)
     average_rating = db.Column(db.Float, default=0)
     ranking = db.Column(db.Integer, default=0)
-    # TODO: badges
 
     # Relationships
     # This user's followers are instances where this user's id is the following id in Connection
-    followers = db.relationship("Connection", foreign_keys="[Connection.following_id]", back_populates="following")
+    followers = db.relationship("Connection", foreign_keys="[Connection.following_id]", back_populates="following",  cascade="delete")
     # This user's following are instances where this user's id is the follower id in Connection
-    following = db.relationship("Connection", foreign_keys="[Connection.follower_id]", back_populates="follower")
+    following = db.relationship("Connection", foreign_keys="[Connection.follower_id]", back_populates="follower",  cascade="delete")
     # Review
-    reviews = db.relationship("Review", back_populates="user")
+    reviews = db.relationship("Review", back_populates="user", cascade="delete")
 
     def __init__(self, **kwargs):
         """
@@ -38,10 +39,9 @@ class User(db.Model):
         self.bio = kwargs.get("bio", "")
         self.location = kwargs.get("location", "")
         self.timestamp = datetime.datetime.now()
-        # TODO: self.ratings_count = calculate!! # TODO 
+        self.ratings_count = 0
         # TODO: self.average_rating = calculate!!
-        # TODO: self.ranking
-        # TODO: self.badges = calculate!!
+        self.ranking = 0
 
     def serialize(self):
         """
@@ -55,13 +55,11 @@ class User(db.Model):
             "location": self.location,
             "timestamp": self.timestamp.isoformat(),
             "ratings_count": self.ratings_count,
-            "average_rating": self.average_rating,
+            # "average_rating": self.average_rating,
             "ranking": self.ranking,
             "reviews": [ r.serialize() for r in self.reviews ]
             # TODO: followers/following
-            # TODO: badges
         }
-
 
 class Connection(db.Model):
     """ 
@@ -116,7 +114,7 @@ class Eatery(db.Model):
     location = db.Column(db.String, nullable=True) 
     average_rating = db.Column(db.Float, default=0)
     # TODO: reviews
-    reviews = db.relationship("Review", back_populates="eatery")
+    reviews = db.relationship("Review", back_populates="eatery",  cascade="delete")
 
 
     def __init__(self, **kwargs):
@@ -129,7 +127,6 @@ class Eatery(db.Model):
         self.location = kwargs.get("location", "")
         # TODO: self.average_rating = calculate!!
         # self.average_rating = 0
-        # TODO: relationships.
 
     def serialize(self):
         """
@@ -184,3 +181,25 @@ class Review(db.Model):
             "review_text": self.review_text,
             "timestamp": self.timestamp.isoformat()
         }
+
+def update_user_rankings():
+    """
+    Updates each user's ranking based on how many reviews they have written.
+    More reviews = higher rank (lower number).
+    """
+    session: Session = db.session  # Get current SQLAlchemy session
+
+    # Query review count for each user, ordered by count descending
+    user_review_counts = session.query(
+        Review.user_id,
+        func.count(Review.id).label("review_count")
+    ).group_by(Review.user_id).order_by(func.count(Review.id).desc()).all()
+
+    # Assign ranking based on index in sorted list (starting from 1)
+    for rank, (user_id, count) in enumerate(user_review_counts, start=1):
+        user = session.get(User, user_id)
+        if user:
+            user.ranking = rank
+            user.ratings_count = count  # Optional: keep this in sync
+
+    session.commit()
