@@ -184,6 +184,8 @@ def follow():
     following_id = body.get("following_id")
     if follower_id is None or following_id is None:
         return failure_response("Missing required fields!", 400)
+    if follower_id == following_id:
+        return failure_response("user cannot follow self", 400)
 
     follower = User.query.filter_by(id=follower_id).first()
     following = User.query.filter_by(id=following_id).first()

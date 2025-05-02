@@ -100,6 +100,7 @@ class Connection(db.Model):
     # Connections must be unique
     __table_args__ = (
         db.UniqueConstraint("follower_id", "following_id", name='unique_user_connection'),
+        db.CheckConstraint("follower_id != following_id", name="check_not_following_self")
     )
 
     # Relationships: many-to-many with User
@@ -178,6 +179,7 @@ class Review(db.Model):
     # Table constraints: rating must be between 0 and 10
     __table_args__ = (
         db.CheckConstraint("rating >= 1 AND rating <= 10", name="checking_rating_range"),
+        db.UniqueConstraint("user_id", "eatery_id", name='unique_user_eatery_review')
     ) 
 
     # Relationship: many reviews to 1 user, many reviews to 1 eatery
