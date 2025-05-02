@@ -153,13 +153,29 @@ def get_user_following(user_id):
 @app.route("/api/users/<int:user_id>/reviews/")
 def get_user_reviews(user_id):
     """
-    Get all reviews made by this user
+    Get all reviews, ordered by rating (highest to lowest), made by this user
     """
     user = User.query.filter_by(id=user_id).first()
     if user is None:
         return failure_response("user not found")
     reviews = Review.query.filter_by(user_id=user_id)
-    return success_response({"reviews": [ r.serialize() for r in reviews ]})
+    sorted_reviews = sorted(reviews, key=lambda r: r.rating, reverse=True)
+
+    return success_response({"reviews": [ r.serialize() for r in sorted_reviews ]})
+
+@app.route("/api/users/<int:user_id>/following_reviews>")
+def get_user_following_reviews(user_id):
+    """
+    Get all reviews made by this user's following, sorted from most recent to least recent
+    """
+    user = User.query.filter_by(id=user_id).first()
+    if user is None:
+        return failure_response("user not found")
+    following = user.following
+    following_reviews = []
+    for f in following:
+        following_reviews.append(Review.query.filter_by(user_id = ))
+
 
 # -- CONNECTION ROUTES -------------------------------------------------------
 

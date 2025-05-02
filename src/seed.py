@@ -12,13 +12,19 @@ with app.app_context():
     db.create_all() # Prepopulate database with existing data
 
     # Users
-    # user1 = User(name="Alice Smith", netid="as123")
+    user1 = User(name="Lydia", username="lydiashen")
+    users = [
+        user1
+    ] 
+    # four users, have the first one follow everyone else, and have everyone follow them back. 
+    # generate dummy reviews
     # user2 = User(name="Bob Johnson", netid="bj456")
     # user3 = User(name="Charlie Kim", netid="ck789")
 
     # Eateries
+    eatery1 = Eatery(name="104West!",                       location="104 West Avenue")
     eateries = [
-        Eatery(name="104West!",                       location="104 West Avenue"),
+        eatery1,
         Eatery(name="Libe Cafe",                      location="Olin Library"),
         Eatery(name="Atrium Cafe",                    location="Sage Hall"),
         Eatery(name="Bear Necessities",               location="Robert Purcell Community Center"),
@@ -53,12 +59,15 @@ with app.app_context():
     # conn2 = Connection(follower=user2, followee=user3)
 
     # Reviews
+    reviews = [
+        (Review(user_id=1, eatery_id=1, rating=5, review_text="was ok"))
+    ]
     # review1 = Review(user=user1, eatery=eatery1, rating=5, text="Amazing tacos!")
     # review2 = Review(user=user2, eatery=eatery2, rating=4, text="Loved the carbonara.")
     # review3 = Review(user=user3, eatery=eatery3, rating=3, text="Pretty average burgers.")
 
     # Add and commit
-    db.session.add_all(eateries)
+    db.session.add_all(users + eateries + reviews)
     db.session.commit()
 
     print("✅ Database seeded with sample data.")
