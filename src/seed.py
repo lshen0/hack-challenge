@@ -12,14 +12,13 @@ with app.app_context():
     db.create_all() # Prepopulate database with existing data
 
     # Users
-    user1 = User(name="Lydia", username="lydiashen")
+    user1 = User(name="Lydia",  username="lydia")
+    user2 = User(name="Cam",    username = "cam")
+    user3 = User(name="Claire", username="claire")
+    user4 = User(name="Parsa", username="parsa")
     users = [
-        user1
+        user1, user2, user3, user4
     ] 
-    # four users, have the first one follow everyone else, and have everyone follow them back. 
-    # generate dummy reviews
-    # user2 = User(name="Bob Johnson", netid="bj456")
-    # user3 = User(name="Charlie Kim", netid="ck789")
 
     # Eateries
     eatery1 = Eatery(name="104West!",                       location="104 West Avenue")
@@ -55,19 +54,31 @@ with app.app_context():
     ]
 
     # Connections
-    # conn1 = Connection(follower=user1, followee=user2)
-    # conn2 = Connection(follower=user2, followee=user3)
+    conn1 = Connection(follower_id=1, following_id=2)
+    conn2 = Connection(follower_id=1, following_id=3)
+    conn3 = Connection(follower_id=1, following_id=4)
+    conn4 = Connection(follower_id=2, following_id=1)
+    conn5 = Connection(follower_id=3, following_id=1)
+    conn6 = Connection(follower_id=4, following_id=1)
+    connections = [
+        conn1, conn2, conn3, conn4, conn5, conn6
+    ]
 
     # Reviews
     reviews = [
-        (Review(user_id=1, eatery_id=1, rating=5, review_text="was ok"))
+        (Review(user_id=1, eatery_id=1, rating=5, review_text="was ok")),
+        (Review(user_id=1, eatery_id=19, rating=10, review_text="duffadilla.")),
+        (Review(user_id=2, eatery_id=6, rating=10, review_text="route 20 was delicious")),
+        (Review(user_id=2, eatery_id=19, rating=8, review_text="free oyster crackers")),
+        (Review(user_id=3, eatery_id=3, rating=7.2, review_text="go-to!")),
+        (Review(user_id=3, eatery_id=9, rating=10, review_text="unbeatable")),
+        (Review(user_id=3, eatery_id=19, rating=9, review_text="duffadilla")),
+        (Review(user_id=4, eatery_id=21, rating=6.8, review_text="nacho bowls!!"))
+        
     ]
-    # review1 = Review(user=user1, eatery=eatery1, rating=5, text="Amazing tacos!")
-    # review2 = Review(user=user2, eatery=eatery2, rating=4, text="Loved the carbonara.")
-    # review3 = Review(user=user3, eatery=eatery3, rating=3, text="Pretty average burgers.")
 
     # Add and commit
-    db.session.add_all(users + eateries + reviews)
+    db.session.add_all(users + eateries + connections + reviews)
     db.session.commit()
 
     print("✅ Database seeded with sample data.")

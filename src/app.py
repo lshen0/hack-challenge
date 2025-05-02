@@ -12,8 +12,6 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["SQLALCHEMY_ECHO"] = True
 
 db.init_app(app)
-# with app.app_context():
-#     db.create_all()
 
 # -- Generalized responses --------------------------------------------------------
 def success_response(body, code=200):
@@ -22,7 +20,7 @@ def success_response(body, code=200):
 def failure_response(message, code=404):
     return json.dumps({"error": message}), code
 
-# -- Update rankings/average ratings  ---------------------------------------------
+# -- Update rankings/average ratings ---------------------------------------------
 def update_user_rankings():
     """
     Updates each user's ranking based on how many reviews they have written.
@@ -73,6 +71,20 @@ def update_eatery_average_rating(eatery_id):
         total = sum([review.rating for review in reviews])
         eatery.average_rating = round((float) (total) / len(reviews), 1)
     db.session.commit()
+
+def initialize_statistics():
+    """
+    Initialize average ratings for users/eateries + user rankings.
+    """
+    for user in User.query.all():
+        update_user_average_rating(user.id)
+    for eatery in Eatery.query.all():
+        update_eatery_average_rating(eatery.id)
+    update_user_rankings()
+
+# Initialize statistics
+with app.app_context():
+    initialize_statistics()
 
 # -- USER ROUTES -------------------------------------------------------------------
 
@@ -163,7 +175,7 @@ def get_user_reviews(user_id):
 
     return success_response({"reviews": [ r.serialize() for r in sorted_reviews ]})
 
-@app.route("/api/users/<int:user_id>/following_reviews>")
+@app.route("/api/users/<int:user_id>/following_reviews/")
 def get_user_following_reviews(user_id):
     """
     Get all reviews made by this user's following, sorted from most recent to least recent
@@ -172,10 +184,43 @@ def get_user_following_reviews(user_id):
     if user is None:
         return failure_response("user not found")
     following = user.following
-    following_reviews = []
+    reviews = []
     for f in following:
-        following_reviews.append(Review.query.filter_by(user_id = ))
+        for r in Review.query.filter_by(user_id=f.id):
+            reviews.append(r) 
+    sorted_reviews =  sorted(reviews, key=lambda r: r.timestamp, reverse=True)
 
+    return success_response({"reviews": [ r.serialize() for r in sorted_reviews ]})
+
+@app.route("/api/users/<int:user_id>/ranking/")
+def get_user_ranking(user_id): 
+    """
+    Get the ranking of a user
+    """
+    user = User.query.filter_by(id=user_id).first()
+    if user is None:
+        return failure_response("user not found")
+    return success_response({"ranking": user.ranking})
+
+@app.route("/api/users/<int:user_id>/average_rating/")
+def get_user_average_rating(user_id):
+    """
+    Get the average rating of a user
+    """
+    user = User.query.filter_by(id=user_id).first()
+    if user is None:
+        return failure_response("user not found")
+    return success_response({"average_rating": user.average_rating})
+
+@app.route("/api/users/<int:user_id>/rating_count/")
+def get_user_ratings_count(user_id):
+    """
+    Get the ratings_count of a user
+    """
+    user = User.query.filter_by(id=user_id).first()
+    if user is None:
+        return failure_response("user not found")
+    return success_response({"ratings_count": user.ratings_count})
 
 # -- CONNECTION ROUTES -------------------------------------------------------
 
@@ -327,6 +372,16 @@ def get_eatery_reviews(eatery_id):
         return failure_response("eatery not found")
     reviews = Review.query.filter_by(eatery_id=eatery_id)
     return success_response({"reviews": [ r.serialize() for r in reviews ]})
+
+@app.route("/api/eateries/<int:eatery_id>/rating/")
+def get_average_rating_eatery(eatery_id):
+    """
+    Get the average rating of an eatery
+    """
+    eatery = Eatery.query.filter_by(id=eatery_id).first()
+    if eatery is None:
+        return failure_response("eatery not found")
+    return success_response({"average_rating": eatery.average_rating})
 
 # -- REVIEW ROUTES ----------------------------------------------------------
 
