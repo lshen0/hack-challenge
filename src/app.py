@@ -15,14 +15,14 @@ db.init_app(app)
 with app.app_context():
     db.create_all()
 
-# Generalized response formats
+# -- Generalized responses --------------------------------------------------------
 def success_response(body, code=200):
     return json.dumps(body), code
 
 def failure_response(message, code=404):
     return json.dumps({"error": message}), code
 
-# -- HELPER FUNCTIONS -----------------------------------------------
+# -- Update rankings/average ratings  ---------------------------------------------
 def update_user_rankings():
     """
     Updates each user's ranking based on how many reviews they have written.
@@ -74,9 +74,7 @@ def update_eatery_average_rating(eatery_id):
         eatery.average_rating = round((float) (total) / len(reviews), 1)
     db.session.commit()
 
-# ------------------ ROUTES --------------------------------------------
-
-# -- USER ROUTES -----------------------------------------------
+# -- USER ROUTES -------------------------------------------------------------------
 @app.route("/api/users/", methods=["POST"])
 def create_user():
     """"
@@ -107,6 +105,16 @@ def get_users():
     users = User.query.all()
     return success_response({"users" : [ u.serialize() for u in users ]})
 
+@app.route("/api/users/<int:user_id>/")
+def get_user_by_id(user_id):
+    """
+    Get user by id
+    """
+    user = User.query.filter_by(id=user_id).first()
+    if user is None:
+        return failure_response("user not found")
+    return success_response(user.serialize())
+
 @app.route("/api/users/<int:user_id>/", methods=["DELETE"])
 def delete_user_by_id(user_id):
     """"
@@ -120,7 +128,7 @@ def delete_user_by_id(user_id):
     return success_response(user.serialize())
 
 @app.route("/api/users/<int:user_id>/followers/")
-def get_all_followers(user_id):
+def get_user_followers(user_id):
     """
     Get all followers of a user
     """
@@ -131,7 +139,7 @@ def get_all_followers(user_id):
     return success_response({"followers" : [ c.follower.simple_serialize() for c in followers ]})
 
 @app.route("/api/users/<int:user_id>/following/")
-def get_all_following(user_id):
+def get_user_following(user_id):
     """
     Get all people this user is following
     """
@@ -141,22 +149,40 @@ def get_all_following(user_id):
     following = Connection.query.filter_by(follower_id=user_id)
     return success_response({"following" : [ c.following.simple_serialize() for c in following ]})
 
-
-
-# -- CONNECTION ROUTES -----------------------------------------------
+# -- CONNECTION ROUTES -------------------------------------------------------
 @app.route("/api/connections/")
-def get_all_connections():
+def get_connections():
     """
     Get all connections
     """
     connections = Connection.query.all()
     return success_response({"connections" : [ c.serialize() for c in connections ]})
 
-@app.route("/api/users/<int:follower_id>/follow/<int:following_id>/", methods=["POST"])
-def follow(follower_id, following_id):
+@app.route("/api/connections/<int:connection_id>/")
+def get_connection_by_id(connection_id):
+    """
+    Get connection by id
+    """
+    connection = Connection.query.filter_by(id=connection_id).first()
+    if connection is None:
+        return failure_response("connection not found")
+    return success_response(connection.serialize())
+
+@app.route("/api/connections/", methods=["POST"])
+def follow():
     """"
     Have one user follow another
     """
+    try: 
+        body = json.loads(request.data)
+    except:
+        return failure_response("Invalid JSON format!", 400)
+    
+    follower_id = body.get("follower_id")
+    following_id = body.get("following_id")
+    if follower_id is None or following_id is None:
+        return failure_response("Missing required fields!", 400)
+
     follower = User.query.filter_by(id=follower_id).first()
     following = User.query.filter_by(id=following_id).first()
     if follower is None:
@@ -174,11 +200,21 @@ def follow(follower_id, following_id):
     db.session.commit()
     return success_response(connection.serialize())
 
-@app.route("/api/users/<int:follower_id>/unfollow/<int:following_id>/", methods=["DELETE"])
-def unfollow(follower_id, following_id):
+@app.route("/api/connections/", methods=["DELETE"])
+def unfollow():
     """"
     Have one user unfollow another
     """
+    try: 
+        body = json.loads(request.data)
+    except:
+        return failure_response("Invalid JSON format!", 400)
+    
+    follower_id = body.get("follower_id")
+    following_id = body.get("following_id")
+    if follower_id is None or following_id is None:
+        return failure_response("Missing required fields!", 400)
+    
     follower = User.query.filter_by(id=follower_id).first()
     following = User.query.filter_by(id=following_id).first()
     if follower is None:
@@ -197,7 +233,7 @@ def unfollow(follower_id, following_id):
 
     return success_response(connection.serialize())
 
-# -- EATERY ROUTES -----------------------------------------------
+# -- EATERY ROUTES ----------------------------------------------------------
 @app.route("/api/eateries/", methods=["POST"])
 def create_eatery():
     """
@@ -228,6 +264,16 @@ def get_eateries():
     eateries = Eatery.query.all()
     return success_response({"eateries": [ e.serialize() for e in eateries ]})
 
+@app.route("/api/eateries/<int:eatery_id>/")
+def get_eatery_by_id(eatery_id):
+    """
+    Get eatery by id
+    """
+    eatery = Eatery.query.filter_by(id=eatery_id).first()
+    if eatery is None:
+        return failure_response("eatery not found")
+    return success_response(eatery.serialize())
+
 @app.route("/api/eateries/<int:eatery_id>/", methods=["DELETE"])
 def delete_eatery_by_id(eatery_id):
     """"
@@ -240,7 +286,7 @@ def delete_eatery_by_id(eatery_id):
     db.session.commit()
     return success_response(eatery.serialize())
 
-# -- REVIEW ROUTES -----------------------------------------------
+# -- REVIEW ROUTES ----------------------------------------------------------
 @app.route("/api/reviews/", methods=["POST"])
 def create_review():
     """
@@ -275,6 +321,17 @@ def get_reviews():
     """
     reviews = Review.query.all()
     return success_response({"reviews": [ r.serialize() for r in reviews ]})
+
+@app.route("/api/reviews/<int:review_id>/")
+def get_review_by_id(review_id):
+    """
+    Get review by id
+    """
+    review = Review.query.filter_by(id=review_id).first()
+    if review is None:
+        return failure_response("review not found")
+    return success_response(review.serialize())
+
 
 @app.route("/api/reviews/<int:review_id>/", methods=["DELETE"])
 def delete_review_by_id(review_id):
@@ -323,6 +380,5 @@ def edit_review(review_id):
 
     return success_response(review.serialize())
     
-
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
