@@ -1,9 +1,10 @@
-# Big Red Beli
+# Big Red Beli 😋
 
-Rate and share your favorite spots on campus with friends! 😋
+Rate and share your favorite spots on campus with friends! 
 
-### Authors:
+### Authors 🧑‍💻
 Backend: Cam Keller, Claire Yu, Lydia Shen
+
 iOS: Parsa Tehranipoor
 
 ## Description: TODO
