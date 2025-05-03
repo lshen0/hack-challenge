@@ -86,6 +86,10 @@ def initialize_statistics():
 with app.app_context():
     initialize_statistics()
 
+@app.route("/")
+def hello_world():
+    return "Hello world!"
+
 # -- USER ROUTES -------------------------------------------------------------------
 
 @app.route("/api/users/")

@@ -1,0 +1,5 @@
+services:
+  demo:  
+    image: lydiashen/hack-challenge:v1.0.0
+    ports:
+      - "80:5000"
