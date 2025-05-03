@@ -7,7 +7,8 @@ Backend: Cam Keller, Claire Yu, Lydia Shen
 
 iOS: Parsa Tehranipoor 
 
-### [iOS repo](https://github.com/parsa-tehranipoor/hack-challenge-frontend) 📇
+### iOS repo 📇
+Click [here](https://github.com/parsa-tehranipoor/hack-challenge-frontend) to access the iOS repo!
 
 ## Description 
 A Beli-style social media app for reviewing food at Cornell dining locations. Users can rank and review spots they’ve tried, follow friends, and view friends' reviews in order to inform their next bite! Competitive eaters can increase their campus-wide ranking by reviewing more and more spots.
